@@ -55,21 +55,29 @@ const initMap = (lat, lon, mapElement) => {
   map = L.map(mapElement).setView([lat, lon], 16);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 16,
+    maxZoom: 18,
     // necessary for copyright :P
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
-  userMarker = L.marker([lat, lon]).addTo(map).bindPopup("You are here!");
+
+  let userIcon = new L.icon({
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    iconUrl: "./img/trainer.png"
+  });
+
+  userMarker = L.marker([lat, lon], {icon: userIcon}).addTo(map).bindPopup("You are here!");
   map.invalidateSize();
 
   COUPON_LOCATIONS.forEach(location => {
     let string = location["name"] + ": " + location["deal"];
     let randIndex = Math.floor(Math.random() * 4);
-    const iconSettings = L.Icon.extend({
-      iconSize: [28, 28]
+    let icon = new L.icon({
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      iconUrl: "./img/" + MAP_ICONS[randIndex]
     })
-    var locIcon = new iconSettings({iconUrl: "./img/" + MAP_ICONS[randIndex]});
-    L.marker([location["lat"], location["lng"]], {icon: locIcon}).addTo(map).bindPopup(string)
+    L.marker([location["lat"], location["lng"]], {icon: icon}).addTo(map).bindPopup(string)
   })
 };
 
@@ -111,10 +119,12 @@ export const fetchBusinessAtLocation = async () => {
             resolve();
           },
           () => {
+            resolve();
             throw("Location denied. Using default location.");
           }
       );
     } else {
+      resolve();
       throw("Geolocation not supported.");
     }
   })
