@@ -10,6 +10,6 @@ python3 -m http.server 8080
 Then open your browser and navigate to:
 http://localhost:8080
 
-
+If any problems arise, please submit an issue request.
 
 Note: Having Python3 installed is a requirement
