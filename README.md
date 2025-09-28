@@ -20,6 +20,8 @@ Having Python3 installed is a requirement
 
 If the Google Maps API does not work, potentially clear the cache on your browser
 
-Thanks for visiting!
+
+### Thanks for visiting!
+
 
 
