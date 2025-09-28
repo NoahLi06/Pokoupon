@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Geo-Reward Maximizer</title>
+    <title>Pokoupon</title>
 
     <!-- Tailwind (fine for dev; switch to a built CSS for production) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,14 +18,15 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="./images/confetti.png" />
 
     <!-- Prevent favicon 404 during local dev -->
-    <link rel="icon" href="data:,">
+    <link rel="icon" href="data:," />
   </head>
   <body class="flex flex-col items-center justify-center min-h-screen p-4">
     <div class="game-container w-full max-w-md mx-auto p-4 space-y-4 z-0">
       <div class="text-center pb-2">
-        <h1 class="text-xl">PoKoupon!</h1>
+        <h1 class="text-xl">POKOUPON</h1>
       </div>
 
       <div id="map-container" class="pixel-border p-1">
@@ -69,7 +70,10 @@
     >
       <div class="game-container p-6 w-full max-w-md space-y-4">
         <h2 class="text-xl font-bold">Manage Cardballs</h2>
-        <div id="modal-card-list" class="space-y-2 max-h-60 overflow-y-auto p-2"></div>
+        <div
+          id="modal-card-list"
+          class="space-y-2 max-h-60 overflow-y-auto p-2"
+        ></div>
         <div>
           <select id="add-card-select" class="pixel-input w-full p-2"></select>
           <button
@@ -93,9 +97,10 @@
 
     <!-- Google Maps (async + defer; uses callback=initMap) -->
     <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC1j5XxRAQrqMwrAb3pZm3Q6aqOhEEdhdc&v=weekly&callback=initMap" 
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC1j5XxRAQrqMwrAb3pZm3Q6aqOhEEdhdc&v=weekly&callback=initMap"
       async
       defer
-    ></script> <!-- NEED THE API KEY -->
+    ></script>
+    <!-- NEED THE API KEY -->
   </body>
 </html>
