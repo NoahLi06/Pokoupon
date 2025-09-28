@@ -5,20 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Geo-Reward Maximizer</title>
 
+    <!-- Tailwind (fine for dev; switch to a built CSS for production) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -26,74 +16,22 @@
       rel="stylesheet"
     />
 
-    <style>
-      /* Define our color palette */
-      :root {
-        --dark-green: #0f380f;
-        --light-green: #9bbc0f;
-        --pixel-border-color: #306230;
-      }
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css" />
 
-      /* Apply the font and base colors to the whole page */
-      body {
-        font-family: "Press Start 2P", cursive;
-        background-color: var(--dark-green);
-        color: var(--light-green);
-        image-rendering: pixelated; /* Ensures images look sharp and pixely */
-      }
-
-      /* Style for the main game container */
-      .game-container {
-        background-color: var(--dark-green);
-        border: 4px solid var(--pixel-border-color);
-        box-shadow: inset 0 0 0 4px var(--dark-green);
-      }
-
-      /* General styles for all buttons to make them look pixelated */
-      .pixel-button {
-        border-radius: 0 !important; /* Sharp corners */
-        border: 4px solid var(--pixel-border-color);
-        text-transform: uppercase;
-        box-shadow: inset 0 0 0 0 var(--dark-green);
-        transition: all 0.1s ease-in-out;
-      }
-
-      .pixel-button:hover,
-      .pixel-button:focus {
-        background-color: var(--pixel-border-color) !important;
-        color: var(--dark-green) !important;
-      }
-      .pixel-button:active {
-        box-shadow: inset 4px 4px 0 0 var(--dark-green);
-      }
-
-      /* Styles for text inputs and select dropdowns */
-      .pixel-input {
-        background-color: var(--dark-green);
-        border: 4px solid var(--pixel-border-color);
-        border-radius: 0;
-        color: var(--light-green);
-      }
-      .pixel-input:focus {
-        outline: none;
-        border-color: var(--light-green);
-      }
-
-      /* Custom border for other elements */
-      .pixel-border {
-        border: 4px solid var(--pixel-border-color);
-        background-color: var(--dark-green);
-      }
-    </style>
+    <!-- Prevent favicon 404 during local dev -->
+    <link rel="icon" href="data:,">
   </head>
   <body class="flex flex-col items-center justify-center min-h-screen p-4">
     <div class="game-container w-full max-w-md mx-auto p-4 space-y-4 z-0">
       <div class="text-center pb-2">
         <h1 class="text-xl">ECO-CATCHER</h1>
       </div>
-      <div id="map-container" class="pixel-border p-1 z-index-0">
+
+      <div id="map-container" class="pixel-border p-1">
         <div id="map" class="h-64"></div>
       </div>
+
       <div
         id="location-info-area"
         class="hidden text-center pixel-border p-4 space-y-2"
@@ -101,16 +39,19 @@
         <p>Location Found:</p>
         <p id="location-name" class="text-lg"></p>
       </div>
+
       <button
         id="capture-deal-btn"
         class="pixel-button w-full bg-transparent text-white font-semibold py-3"
       >
         Capture Deal
       </button>
+
       <div
         id="error-message"
         class="hidden text-center pixel-border p-4 text-red-400"
       ></div>
+
       <div>
         <div class="flex justify-between items-center mb-2">
           <h2 class="text-lg">Cardballs</h2>
@@ -124,14 +65,11 @@
 
     <div
       id="wallet-modal"
-      class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-1"
+      class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-10"
     >
       <div class="game-container p-6 w-full max-w-md space-y-4">
         <h2 class="text-xl font-bold">Manage Cardballs</h2>
-        <div
-          id="modal-card-list"
-          class="space-y-2 max-h-60 overflow-y-auto p-2"
-        ></div>
+        <div id="modal-card-list" class="space-y-2 max-h-60 overflow-y-auto p-2"></div>
         <div>
           <select id="add-card-select" class="pixel-input w-full p-2"></select>
           <button
@@ -150,6 +88,14 @@
       </div>
     </div>
 
+    <!-- App logic (must load before Maps callback triggers) -->
     <script type="module" src="./logic-functions.js"></script>
+
+    <!-- Google Maps (async + defer; uses callback=initMap) -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&v=weekly&callback=initMap" 
+      async
+      defer
+    ></script> <!-- NEED THE API KEY -->
   </body>
 </html>
