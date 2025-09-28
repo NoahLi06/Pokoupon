@@ -1,231 +1,141 @@
-// logic-functions.js
+// js/main.js
 
-let map;
-let userMarker;       // google.maps.marker.AdvancedMarkerElement
-let accuracyCircle;   // google.maps.Circle
-let geocoder;
-let watchId;
+import * as Wallet from './js/wallet-services.js';
+import * as Map from './js/map-service.js';
+import * as Game from './js/game-mechanics.js';
 
-// ----- Helpers -----
-const $ = (sel) => document.querySelector(sel);
-const show = (el) => el.classList.remove("hidden");
-const hide = (el) => el.classList.add("hidden");
+// --- DOM ELEMENTS ---
+const mapElement = document.getElementById("map");
+const locationInfoArea = document.getElementById("location-info-area");
+const locationNameEl = document.getElementById("location-name");
+const captureDealBtn = document.getElementById("capture-deal-btn");
+const errorMessageEl = document.getElementById("error-message");
+const walletCardsEl = document.getElementById("wallet-cards");
+const manageWalletBtn = document.getElementById("manage-wallet-btn");
+const walletModal = document.getElementById("wallet-modal");
+const closeModalBtn = document.getElementById("close-modal-btn");
+const addCardSelect = document.getElementById("add-card-select");
+const addCardBtn = document.getElementById("add-card-btn");
+const modalCardList = document.getElementById("modal-card-list");
 
-function setError(msg) {
-  const box = $("#error-message");
-  box.textContent = msg || "";
-  if (msg) show(box);
-  else hide(box);
-}
+// --- UI RENDERING FUNCTIONS ---
+const showError = (message) => {
+  errorMessageEl.textContent = message;
+  errorMessageEl.classList.remove("hidden");
+};
+const clearError = () => errorMessageEl.classList.add("hidden");
 
-function updateLocationInfo(text) {
-  $("#location-name").textContent = text || "";
-  if (text) show($("#location-info-area"));
-  else hide($("#location-info-area"));
-}
-
-function getLatLngFromPosition(pos) {
-  // AdvancedMarkerElement.position can be LatLng or {lat:number,lng:number}
-  if (!pos) return null;
-  if (typeof pos.lat === "function") return { lat: pos.lat(), lng: pos.lng() };
-  return { lat: pos.lat, lng: pos.lng };
-}
-
-// ----- Cardballs (pre-populated) -----
-const availableCards = [
-  { id: "visa", name: "Visa **** 1234" },
-  { id: "mc", name: "Mastercard **** 5678" },
-  { id: "amex", name: "AmEx **** 9876" },
-  { id: "disc", name: "Discover **** 4321" },
-];
-
-let wallet = [
-  { id: "visa", name: "Visa **** 1234" }, // preloaded
-];
-
-function renderWallet() {
-  const container = $("#wallet-cards");
-  container.innerHTML = "";
-
-  if (wallet.length === 0) {
-    container.innerHTML = "<p class='text-sm'>No Cardballs yet.</p>";
+const renderWalletCards = () => {
+  walletCardsEl.innerHTML = "";
+  const cards = Wallet.getUserCards();
+  if (cards.length === 0) {
+    walletCardsEl.innerHTML = '<p class="text-center">Your wallet is empty.</p>';
     return;
   }
+  cards.forEach((id) => {
+    const card = Wallet.ALL_CARDS_DATABASE[id];
+    if (card) {
+      const div = document.createElement("div");
+      div.className = "pixel-border p-2 text-center text-sm";
+      div.textContent = card.name;
+      walletCardsEl.appendChild(div);
+    }
+  });
+};
 
-  wallet.forEach((card) => {
+const renderModal = () => {
+  const userCards = Wallet.getUserCards();
+  const allCards = Wallet.ALL_CARDS_DATABASE;
+  
+  addCardSelect.innerHTML = "";
+  Object.entries(allCards).forEach(([id, card]) => {
+    if (!userCards.includes(id)) {
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = card.name;
+      addCardSelect.appendChild(option);
+    }
+  });
+
+  modalCardList.innerHTML = "";
+  userCards.forEach((id) => {
+    const card = allCards[id];
     const div = document.createElement("div");
-    div.className = "pixel-border p-2 flex justify-between items-center";
+    div.className = "flex justify-between items-center pixel-border p-2";
     div.innerHTML = `
       <span>${card.name}</span>
-      <button class="text-xs underline remove-card" data-id="${card.id}">Remove</button>
+      <button data-card-id="${id}" class="remove-card-btn bg-red-500 text-white text-xs font-bold w-6 h-6 hover:bg-red-600">&times;</button>
     `;
-    container.appendChild(div);
+    modalCardList.appendChild(div);
   });
-
-  // Remove handlers
-  container.querySelectorAll(".remove-card").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const id = e.currentTarget.getAttribute("data-id");
-      wallet = wallet.filter((c) => c.id !== id);
-      renderWallet();
-      renderModalCardList();
-    });
-  });
-}
-
-function renderModalCardList() {
-  const select = $("#add-card-select");
-  select.innerHTML = "";
-
-  const options = availableCards.filter((c) => !wallet.find((w) => w.id === c.id));
-  if (options.length === 0) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "All Cardballs added";
-    select.appendChild(opt);
-    select.disabled = true;
-  } else {
-    select.disabled = false;
-    options.forEach((card) => {
-      const opt = document.createElement("option");
-      opt.value = card.id;
-      opt.textContent = card.name;
-      select.appendChild(opt);
-    });
-  }
-}
-
-// ----- Map / Geolocation -----
-function setUserMarker(latLng, accuracyMeters = 50) {
-  if (!userMarker) {
-    userMarker = new google.maps.marker.AdvancedMarkerElement({
-      position: latLng,
-      map,
-      title: "You are here",
-    });
-  } else {
-    userMarker.position = latLng;
-  }
-
-  const radius = Math.min(Math.max(accuracyMeters, 5), 200);
-  if (!accuracyCircle) {
-    accuracyCircle = new google.maps.Circle({
-      map,
-      strokeOpacity: 0.2,
-      strokeWeight: 1,
-      fillOpacity: 0.06,
-      center: latLng,
-      radius,
-    });
-  } else {
-    accuracyCircle.setCenter(latLng);
-    accuracyCircle.setRadius(radius);
-  }
-}
-
-async function reverseGeocode(latLng) {
-  if (!geocoder) geocoder = new google.maps.Geocoder();
-  return new Promise((resolve) => {
-    geocoder.geocode({ location: latLng }, (results, status) => {
-      if (status === "OK" && results && results.length) resolve(results[0].formatted_address);
-      else resolve("");
-    });
-  });
-}
-
-function onGeoSuccess(position) {
-  const { latitude, longitude, accuracy } = position.coords;
-  const latLng = { lat: latitude, lng: longitude };
-
-  setError("");
-  setUserMarker(latLng, accuracy);
-
-  if (map.getZoom() < 16) map.setZoom(17);
-  map.setCenter(latLng);
-
-  reverseGeocode(latLng).then((addr) => {
-    updateLocationInfo(addr || `Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)}`);
-  });
-}
-
-function onGeoError(err) {
-  const fallback = { lat: 42.2808, lng: -83.7430 }; // Ann Arbor fallback
-  setError(`Geolocation error: ${err.message}. Using a fallback location.`);
-  map.setCenter(fallback);
-  map.setZoom(13);
-  setUserMarker(fallback, 100);
-  updateLocationInfo("");
-}
-
-function startGeoWatch() {
-  if (!navigator.geolocation) {
-    setError("Geolocation is not supported by your browser.");
-    return;
-  }
-  const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-
-  navigator.geolocation.getCurrentPosition(onGeoSuccess, onGeoError, options);
-  watchId = navigator.geolocation.watchPosition(onGeoSuccess, onGeoError, {
-    enableHighAccuracy: true,
-    timeout: 20000,
-    maximumAge: 0,
-  });
-}
-
-// ----- UI -----
-function initUI() {
-  // Wallet modal
-  $("#manage-wallet-btn")?.addEventListener("click", () => {
-    renderModalCardList();
-    show($("#wallet-modal"));
-  });
-  $("#close-modal-btn")?.addEventListener("click", () => hide($("#wallet-modal")));
-
-  $("#add-card-btn")?.addEventListener("click", () => {
-    const select = $("#add-card-select");
-    const id = select.value;
-    const card = availableCards.find((c) => c.id === id);
-    if (card && !wallet.find((w) => w.id === id)) {
-      wallet.push(card);
-      renderWallet();
-      renderModalCardList();
-    }
-  });
-
-  // Capture button
-  $("#capture-deal-btn")?.addEventListener("click", () => {
-    const pos = getLatLngFromPosition(userMarker?.position);
-    if (!pos) {
-      setError("Can't capture yet — location not available.");
-      return;
-    }
-    setError("");
-    alert(`Deal captured at ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`);
-  });
-
-  // Initial wallet render
-  renderWallet();
-}
-
-// ----- Google Maps entrypoint (called by script callback) -----
-window.initMap = async function initMap() {
-  try {
-    // Ensure required libraries are loaded before use
-    const { Map } = await google.maps.importLibrary("maps");
-    await google.maps.importLibrary("marker"); // provides google.maps.marker.AdvancedMarkerElement
-
-    map = new Map(document.getElementById("map"), {
-      center: { lat: 0, lng: 0 },
-      zoom: 3,
-      disableDefaultUI: true,
-      mapTypeId: "roadmap",
-      gestureHandling: "greedy",
-    });
-
-    initUI();
-    startGeoWatch();
-  } catch (e) {
-    setError("Failed to load Google Maps. Check your API key and enabled APIs.");
-    console.error(e);
-  }
 };
+
+// --- MAIN ACTION ---
+const handleCaptureDeal = async () => {
+    clearError();
+    captureDealBtn.disabled = true;
+    captureDealBtn.textContent = "Analyzing...";
+
+    try {
+        const {name: placeName, category: placeCategory} = await Map.fetchBusinessAtLocation();
+        locationNameEl.textContent = placeName;
+        locationInfoArea.classList.remove('hidden');
+
+        // Now we can implement the "Bonus Roll" logic here!
+        // For now, let's just show the best card.
+        const bestCard = Game.determineBestCard(placeCategory, Wallet.getUserCards(), Wallet.ALL_CARDS_DATABASE);
+
+        let categoryPretty = placeCategory.charAt(0).toUpperCase() + placeCategory.slice(1);
+        // This is where you would show the result to the user, perhaps in another modal.
+        alert(`You're at ${placeName} (${categoryPretty}).\nBest Cardball: ${bestCard.name} for ${bestCard.reward}% back!`);
+
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        captureDealBtn.disabled = false;
+        captureDealBtn.textContent = "Capture Deal";
+    }
+};
+
+
+// --- INITIALIZATION & EVENT LISTENERS ---
+// --- INITIALIZATION & EVENT LISTENERS ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Load wallet first
+  Wallet.loadCards();
+  renderWalletCards();
+  
+  // Use the new, cleaner map and location functions
+  Map.getUserLocation(
+    mapElement,
+    () => { // onSuccess
+      clearError();
+      // Optional: Automatically fetch business name on load
+      // handleCaptureDeal(); 
+    },
+    (errorMsg) => showError(errorMsg) // onError
+  );
+
+  captureDealBtn.addEventListener("click", handleCaptureDeal);
+
+  manageWalletBtn.addEventListener("click", () => {
+    renderModal();
+    walletModal.classList.remove("hidden");
+  });
+
+  closeModalBtn.addEventListener("click", () => walletModal.classList.add("hidden"));
+  
+  addCardBtn.addEventListener("click", () => {
+    Wallet.addUserCard(addCardSelect.value);
+    renderWalletCards();
+    renderModal();
+  });
+
+  modalCardList.addEventListener("click", (e) => {
+    if (e.target.classList.contains("remove-card-btn")) {
+      Wallet.removeUserCard(e.target.dataset.cardId);
+      renderWalletCards();
+      renderModal();
+    }
+  });
+});

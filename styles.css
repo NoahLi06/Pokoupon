@@ -8,59 +8,127 @@
 
 body {
   font-family: "Press Start 2P", cursive;
-  background-color: #6b6b6b; /* Darker background to make the console pop */
+  background:
+    repeating-linear-gradient(45deg, #5a5a5a 0 6px, #626262 6px 12px),
+    #4f4f4f;
   color: var(--light-green);
-  image-rendering: pixelated; /* Keeps fonts sharp */
+  image-rendering: pixelated;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow-x: hidden;
 }
 
 /* --- Main Console Body --- */
 /* Combines your color with the 3D beveled effect. */
 .game-container {
-  background-color: var(--mid-green);
+  background: linear-gradient(140deg, var(--mid-green) 0%, #2a552a 65%, #214221 100%);
   border: 2px solid #000;
-  border-radius: 8px 8px 20px 8px; /* Classic console shape */
-  box-shadow: inset -3px -3px 0 0 var(--dark-green), /* Inner dark shadow for depth */
-    inset 3px 3px 0 0 var(--light-green); /* Inner light highlight */
+  border-radius: 10px 10px 28px 10px;
+  box-shadow:
+    0 0 0 2px #000,
+    4px 4px 0 0 #000,
+    -4px -4px 0 0 #1b3a1b,
+    inset -3px -3px 0 0 var(--dark-green),
+    inset 3px 3px 0 0 var(--light-green);
   color: var(--dark-green);
-  padding: 20px; /* Give the contents some space */
+  padding: 20px;
+  position: relative;
+}
+
+.game-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 45%);
+  mix-blend-mode: overlay;
 }
 
 /* --- Screen Bezel --- */
 /* Makes the map look like a sunken screen. */
-#map-container.pixel-border {
-  background-color: var(--dark-green);
+/* Pixel border utility */
+.pixel-border {
+  background: var(--dark-green);
   border: 2px solid #000;
   box-shadow: inset 2px 2px 0 0 #000, inset -2px -2px 0 0 var(--mid-green);
-  padding: 8px; /* Space between bezel and map */
+}
+
+#map-container.pixel-border {
+  position: relative;
+  padding: 8px;
 }
 
 #map {
   border: 2px solid var(--dark-green);
+  position: relative;
+  overflow: hidden;
+}
+
+#map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.18) 0 2px,
+    rgba(0,0,0,0) 2px 4px
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+#map::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 55%, rgba(155,188,15,0.22), rgba(0,0,0,0.65));
+  pointer-events: none;
 }
 
 /* --- 3D Pixelated Buttons --- */
 /* This combines your colors with the pressable button effect. */
 .pixel-button {
-  background-color: var(--mid-green);
-  color: var(--dark-green);
+  background: linear-gradient(#2f612f, #225022);
+  color: var(--off-white);
   border: 2px solid var(--dark-green);
   text-transform: uppercase;
-  box-shadow: inset -2px -2px 0 0 var(--dark-green),
+  letter-spacing: 1px;
+  box-shadow:
+    0 0 0 2px #000,
+    inset -2px -2px 0 0 #1a3b1a,
     inset 2px 2px 0 0 var(--light-green);
   cursor: pointer;
-  transition: all 0.1s linear;
+  transition: transform 0.08s ease, background 0.15s ease;
+  position: relative;
+}
+
+.pixel-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%);
+  mix-blend-mode: overlay;
+  pointer-events: none;
 }
 
 .pixel-button:hover,
 .pixel-button:focus {
-  background-color: var(--light-green);
-  color: var(--dark-green);
+  background: linear-gradient(#3d7c3d, #2c642c);
+  outline: none;
+  filter: brightness(1.05);
 }
 
 /* The "pressed down" effect on click */
 .pixel-button:active {
-  box-shadow: inset 2px 2px 0 0 var(--dark-green); /* Reverses shadow */
-  transform: translateY(2px); /* Moves button down */
+  box-shadow: inset 2px 2px 0 0 #102810;
+  transform: translateY(2px);
+  filter: brightness(0.95);
 }
 
 /* --- Other UI Elements --- */
@@ -84,14 +152,44 @@ h1, h2 {
 }
 
 #location-info-area.pixel-border {
-    background-color: var(--light-green);
-    color: var(--dark-green);
-    border: 2px solid var(--dark-green);
-    box-shadow: inset 1px 1px var(--dark-green), inset -1px -1px var(--dark-green);
+  background-color: var(--light-green);
+  color: var(--dark-green);
+  border: 2px solid var(--dark-green);
+  box-shadow: inset 1px 1px var(--dark-green), inset -1px -1px var(--dark-green);
+  position: relative;
+}
+
+#location-info-area.pixel-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0) 45%);
+  mix-blend-mode: overlay;
 }
 
 .game-title {
-  color: var(--light-green); /* Use the vibrant light green for the text */
-  text-shadow: 2px 2px var(--dark-green); /* Adds a sharp, 3D shadow */
-  padding-bottom: 10px; /* A little extra space below the title */
+  color: var(--light-green);
+  text-shadow: 2px 2px var(--dark-green);
+  padding-bottom: 10px;
+  letter-spacing: 2px;
 }
+
+/* Coupon sprite marker */
+.coupon-sprite {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+}
+
+/* Scrollbar theming */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #1e2f1e; }
+::-webkit-scrollbar-thumb { background: #3d6c3d; border: 2px solid #1e2f1e; }
+::-webkit-scrollbar-thumb:hover { background: #4d824d; }
+
+/* Flash utility */
+@keyframes flash-green { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }
+.flash-once { animation: flash-green 0.6s ease-in-out; }

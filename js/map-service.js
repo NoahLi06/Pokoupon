@@ -1,87 +1,130 @@
 // js/map-service.js
+import {COUPON_LOCATIONS} from "./coupon-locations.js";
 
 let map;
 let userMarker;
-let placesService;
 
-/**
- * This function is now the GLOBAL CALLBACK for the Google Maps script.
- * It must be attached to the window object to be accessible.
- */
-window.initMap = () => {
-  const annArbor = { lat: 42.2808, lng: -83.743 };
+const MAP_ICONS = [
+    "clefable.png",
+    "ditto.png",
+    "dragonair.png",
+    "lickitung.png",
+    "wigglytuff.png"
+]
 
-  // Create the map, centered on a default location first
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: annArbor,
-    zoom: 15,
-    disableDefaultUI: true, // A cleaner look for our game UI
-    styles: [ /* Optional: Add custom map styles here for a retro look */ ]
-  });
+// Maps the given OpenStreetMap type to applicable card reward types
+// https://wiki.openstreetmap.org/wiki/Map_features
+const mapCategory = (category) => {
+  switch (category) {
+    case "bar":
+    case "biergarten":
+    case "cafe":
+    case "fast_food":
+    case "food_court":
+    case "ice_cream":
+    case "pub":
+    case "restaurant":
+      return "dining";
 
-  // Initialize the Places Service, which we'll use to find businesses
-  placesService = new google.maps.places.PlacesService(map);
+    case "general":
+    case "supermarket":
+      return "groceries";
 
-  // Now, try to get the user's actual location
+    case "fuel":
+      return "gas";
+
+    case "cinema":
+    case "music_venue":
+    case "planetarium":
+    case "theatre":
+      return "entertainment";
+
+    default:
+      return "other";
+  }
+}
+
+// From your teammate: More robust map initialization
+const initMap = (lat, lon, mapElement) => {
+  if (map) { // If map already exists, just move the view
+    map.setView([lat, lon], 16);
+    userMarker.setLatLng([lat, lon]);
+    return;
+  }
+  
+  map = L.map(mapElement).setView([lat, lon], 16);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 16,
+    // necessary for copyright :P
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+  userMarker = L.marker([lat, lon]).addTo(map).bindPopup("You are here!");
+  map.invalidateSize();
+
+  COUPON_LOCATIONS.forEach(location => {
+    let string = location["name"] + ": " + location["deal"];
+    let randIndex = Math.floor(Math.random() * 4);
+    const iconSettings = L.Icon.extend({
+      iconSize: [28, 28]
+    })
+    var locIcon = new iconSettings({iconUrl: "./img/" + MAP_ICONS[randIndex]});
+    L.marker([location["lat"], location["lng"]], {icon: locIcon}).addTo(map).bindPopup(string)
+  })
+};
+
+// From your teammate: Cleaner location logic with callbacks
+export const getUserLocation = (mapElement, onSuccess, onError) => {
+  const fallbackLat = 42.2808;
+  const fallbackLon = -83.743;
+
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        map.setCenter(userLocation);
-        // Add a marker at the user's location
-        userMarker = new google.maps.Marker({
-          position: userLocation,
-          map: map,
-          title: "You are here!",
-        });
+      (pos) => {
+        initMap(pos.coords.latitude, pos.coords.longitude, mapElement);
+        if (onSuccess) onSuccess(); // Call success callback if provided
       },
       () => {
-        // Handle location denial - map is already centered on Ann Arbor
-        console.warn("User denied location access.");
+        initMap(fallbackLat, fallbackLon, mapElement);
+        if (onError) onError("Location denied. Using default location.");
       }
     );
+  } else {
+    initMap(fallbackLat, fallbackLon, mapElement);
+    if (onError) onError("Geolocation not supported.");
   }
 };
 
-/**
- * Maps a Google Place Type to our game's internal category system.
- * @param {string[]} types - An array of types from a Google Place result.
- * @returns {string} - Our internal category (e.g., "dining").
- */
-const mapGooglePlaceTypeToCategory = (types) => {
-  if (types.includes("restaurant") || types.includes("cafe") || types.includes("bar") || types.includes("meal_takeaway")) return "dining";
-  if (types.includes("grocery_or_supermarket") || types.includes("supermarket")) return "groceries";
-  if (types.includes("gas_station")) return "gas";
-  if (types.includes("movie_theater") || types.includes("amusement_park")) return "entertainment";
-  return "other";
-};
+// From our previous version: The logic to find the business
+export const fetchBusinessAtLocation = async () => {
+  if (!map) throw new Error("Map not initialized.");
 
-/**
- * Finds the nearest business to the center of the map.
- */
-export const fetchBusinessAtLocation = () => {
-  return new Promise((resolve, reject) => {
-    if (!map || !placesService) return reject("Map or Places service not ready.");
+  let lat = 42.2808;
+  let lng = -83.743;
 
-    const request = {
-      location: map.getCenter(),
-      rankBy: google.maps.places.RankBy.DISTANCE, // Find the absolute closest places
-    };
+  await new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+            resolve();
+          },
+          () => {
+            throw("Location denied. Using default location.");
+          }
+      );
+    } else {
+      throw("Geolocation not supported.");
+    }
+  })
 
-    placesService.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const closestPlace = results[0];
-        const business = {
-          name: closestPlace.name,
-          category: mapGooglePlaceTypeToCategory(closestPlace.types),
-        };
-        resolve(business);
-      } else {
-        reject("Could not find any places nearby.");
-      }
-    });
-  });
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+  if (!response.ok) throw new Error("Failed to contact location server.");
+  const data = await response.json();
+
+  if (!data || !data.display_name) throw new Error("Could not identify location.");
+
+  const placeName = data.name || "Unknown Place";
+  return {name: placeName, category: mapCategory(data.type)};
 };
