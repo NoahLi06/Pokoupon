@@ -5,7 +5,7 @@ Powered by Leaflet API, Pokoupon also allows you to see your current location an
 
 Check it out: [noahli06.github.io/Pokoupon](https://noahli06.github.io/Pokoupon/)
 
-## To run on your locally, input in this command to connect with thhe API
+## To run on your locally, input in this command to connect with the API
 ```
 python3 -m http.server 8080
 ```
@@ -19,4 +19,5 @@ If any problems arise, please submit an issue request.
 Having Python3 installed is a requirement
 
 If the Google Maps API does not work, potentially clear the cache on your browser
+
 
